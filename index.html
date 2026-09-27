@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101d34" />
+    <meta name="description" content="タイマー、ストップウォッチ、時間を設定できるポモドーロタイマー。" />
+    <title>おうちタイマー</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23101d34'/%3E%3Ccircle cx='32' cy='34' r='19' fill='none' stroke='%23bdf66d' stroke-width='6'/%3E%3Cpath d='M32 34V21M32 34l9 6' fill='none' stroke='%23fff' stroke-linecap='round' stroke-width='5'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand" aria-label="おうちタイマー">
+          <span class="brand-icon" aria-hidden="true"><span></span></span>
+          <span>おうちタイマー</span>
+        </div>
+        <a class="home-link" href="../">まなびアプリ集に戻る</a>
+      </header>
+
+      <main>
+        <nav class="mode-tabs" role="tablist" aria-label="タイマーの種類">
+          <button class="mode-tab" type="button" id="tab-timer" role="tab" aria-controls="panel-timer" aria-selected="true" data-mode="timer">タイマー</button>
+          <button class="mode-tab" type="button" id="tab-stopwatch" role="tab" aria-controls="panel-stopwatch" aria-selected="false" tabindex="-1" data-mode="stopwatch">ストップウォッチ</button>
+          <button class="mode-tab" type="button" id="tab-pomodoro" role="tab" aria-controls="panel-pomodoro" aria-selected="false" tabindex="-1" data-mode="pomodoro">ポモドーロ</button>
+        </nav>
+
+        <section class="mode-panel" id="panel-timer" role="tabpanel" aria-labelledby="tab-timer">
+          <div class="panel-heading">
+            <span class="eyebrow">COUNTDOWN</span>
+            <h1>タイマー</h1>
+          </div>
+
+          <div class="clock-face" aria-label="残り時間">
+            <svg class="clock-ring" viewBox="0 0 360 360" aria-hidden="true">
+              <circle class="ring-track" cx="180" cy="180" r="160" />
+              <circle class="ring-progress" id="timer-ring" cx="180" cy="180" r="160" />
+            </svg>
+            <div class="clock-content">
+              <span class="clock-label" id="timer-label">残り時間</span>
+              <output class="clock-time" id="timer-display" aria-label="タイマーの残り時間">05:00</output>
+              <span class="clock-status" id="timer-status" aria-live="polite">準備OK</span>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="primary-button" type="button" id="timer-toggle">スタート</button>
+            <button class="secondary-button" type="button" id="timer-reset">リセット</button>
+          </div>
+
+          <div class="settings">
+            <h2>時間を設定</h2>
+            <div class="setting-fields">
+              <label class="number-field">分 <span class="input-wrap"><input id="timer-minutes" type="number" inputmode="numeric" min="0" max="999" step="1" value="5" /><span>分</span></span></label>
+              <label class="number-field">秒 <span class="input-wrap"><input id="timer-seconds" type="number" inputmode="numeric" min="0" max="59" step="1" value="0" /><span>秒</span></span></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="mode-panel" id="panel-stopwatch" role="tabpanel" aria-labelledby="tab-stopwatch" hidden>
+          <div class="panel-heading">
+            <span class="eyebrow">STOPWATCH</span>
+            <h1>ストップウォッチ</h1>
+          </div>
+
+          <div class="clock-face stopwatch-face" aria-label="経過時間">
+            <svg class="clock-ring" viewBox="0 0 360 360" aria-hidden="true">
+              <circle class="ring-track" cx="180" cy="180" r="160" />
+              <circle class="ring-progress" id="stopwatch-ring" cx="180" cy="180" r="160" />
+            </svg>
+            <div class="clock-content">
+              <span class="clock-label">経過時間</span>
+              <output class="clock-time stopwatch-time" id="stopwatch-display" aria-label="ストップウォッチの経過時間">00:00.0</output>
+              <span class="clock-status" id="stopwatch-status" aria-live="polite">準備OK</span>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="primary-button" type="button" id="stopwatch-toggle">スタート</button>
+            <button class="secondary-button" type="button" id="stopwatch-reset">リセット</button>
+          </div>
+        </section>
+
+        <section class="mode-panel" id="panel-pomodoro" role="tabpanel" aria-labelledby="tab-pomodoro" hidden>
+          <div class="panel-heading">
+            <span class="eyebrow">FOCUS & REST</span>
+            <h1>ポモドーロ</h1>
+          </div>
+
+          <div class="pomo-summary">
+            <span class="phase-pill" id="pomo-phase">集中</span>
+            <span class="set-pill">完了 <strong id="pomo-sets">0</strong> セット</span>
+          </div>
+
+          <div class="clock-face" aria-label="ポモドーロの残り時間">
+            <svg class="clock-ring" viewBox="0 0 360 360" aria-hidden="true">
+              <circle class="ring-track" cx="180" cy="180" r="160" />
+              <circle class="ring-progress" id="pomo-ring" cx="180" cy="180" r="160" />
+            </svg>
+            <div class="clock-content">
+              <span class="clock-label" id="pomo-label">集中の残り時間</span>
+              <output class="clock-time" id="pomo-display" aria-label="ポモドーロの残り時間">25:00</output>
+              <span class="clock-status" id="pomo-status" aria-live="polite">準備OK</span>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="primary-button" type="button" id="pomo-toggle">スタート</button>
+            <button class="secondary-button" type="button" id="pomo-reset">今の時間をリセット</button>
+          </div>
+
+          <div class="settings">
+            <h2>時間を設定</h2>
+            <div class="setting-fields">
+              <label class="number-field">集中 <span class="input-wrap"><input id="pomo-work" type="number" inputmode="numeric" min="1" max="180" step="1" value="25" /><span>分</span></span></label>
+              <label class="number-field">休憩 <span class="input-wrap"><input id="pomo-break" type="number" inputmode="numeric" min="1" max="180" step="1" value="5" /><span>分</span></span></label>
+            </div>
+            <label class="option-row">
+              <input id="pomo-auto" type="checkbox" checked />
+              <span><strong>集中と休憩を自動で切り替える</strong><small>次の時間がそのまま始まります</small></span>
+            </label>
+            <button class="text-button" type="button" id="pomo-clear-sets">セット数を0に戻す</button>
+          </div>
+        </section>
+
+        <section class="preferences" aria-labelledby="appearance-title">
+          <h2 id="appearance-title">配色</h2>
+          <div class="theme-options" role="group" aria-label="配色を選ぶ">
+            <button type="button" class="theme-option" data-theme="night" aria-pressed="true"><span class="theme-swatch night-swatch" aria-hidden="true"></span>ナイト</button>
+            <button type="button" class="theme-option" data-theme="day" aria-pressed="false"><span class="theme-swatch day-swatch" aria-hidden="true"></span>ライト</button>
+            <button type="button" class="theme-option" data-theme="berry" aria-pressed="false"><span class="theme-swatch berry-swatch" aria-hidden="true"></span>ベリー</button>
+          </div>
+          <label class="option-row wake-option">
+            <input id="keep-awake" type="checkbox" />
+            <span><strong>画面をつけたままにする</strong><small>対応端末では自動消灯を防ぎます</small></span>
+          </label>
+          <p class="wake-status" id="wake-status" role="status"></p>
+          <p class="background-note">画面が消えても、開き直すと経過時間に追いつきます。ロック中の終了音は端末によって鳴らない場合があります。</p>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
