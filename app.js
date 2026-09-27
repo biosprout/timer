@@ -426,6 +426,7 @@
   function resetPomo() {
     const pomo = state.pomo;
     pomo.running = false;
+    pomo.endAt = 0;
     pomo.remainingMs = (pomo.phase === "break" ? settings.breakMinutes : settings.workMinutes) * 60000;
     pomo.message = "";
     clearAlertTitle();
@@ -480,8 +481,8 @@
   $("pomo-reset").addEventListener("click", resetPomo);
   $("pomo-clear-sets").addEventListener("click", () => {
     state.pomo.sets = 0;
-    save();
-    render();
+    state.pomo.phase = "work";
+    resetPomo();
   });
   $("pomo-auto").addEventListener("change", () => {
     tick(false);
