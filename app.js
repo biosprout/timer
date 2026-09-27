@@ -98,32 +98,91 @@
     $(id).style.strokeDashoffset = String(CIRCUMFERENCE * (1 - Math.max(0, Math.min(1, fraction))));
   }
 
+  // iOS home-screen apps can stop resuming an idle AudioContext after the first chime.
+  // Use one media element there, first played silently by the user's Start tap.
+  const useMediaAlarm = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  let mediaAlarm;
+  let audioSessionRestoreTimer;
   let audioContext;
-  function unlockSound() {
+
+  function restoreAudioSession() {
+    window.clearTimeout(audioSessionRestoreTimer);
     try {
-      audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
-      if (audioContext.state === "suspended") void audioContext.resume().catch(() => {});
+      if (navigator.audioSession?.type === "playback") navigator.audioSession.type = "auto";
+    } catch { /* The audio session API is optional. */ }
+  }
+
+  function unlockSound() {
+    if (useMediaAlarm) {
+      try {
+        mediaAlarm ||= new Audio();
+        mediaAlarm.preload = "auto";
+        mediaAlarm.pause();
+        mediaAlarm.src = "./unlock.wav";
+        void Promise.resolve(mediaAlarm.play()).catch(() => {});
+      } catch { /* Web Audio below remains available as a fallback. */ }
+    }
+    try {
+      if (!audioContext || audioContext.state === "closed") {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state !== "running") void audioContext.resume().catch(() => {});
     } catch { /* Some browsers do not offer Web Audio. */ }
   }
 
-  function soundAlarm() {
-    if (audioContext) {
-      Promise.resolve(audioContext.resume()).then(() => {
-        const now = audioContext.currentTime;
+  function playWebAudioAlarm() {
+    const context = audioContext;
+    if (!context) return;
+    const schedule = () => {
+      if (context.state !== "running") return;
+      try {
+        const now = context.currentTime;
         [0, 0.22, 0.44].forEach((offset, index) => {
-          const oscillator = audioContext.createOscillator();
-          const gain = audioContext.createGain();
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
           oscillator.type = "sine";
           oscillator.frequency.value = index === 1 ? 880 : 660;
           gain.gain.setValueAtTime(0.0001, now + offset);
           gain.gain.exponentialRampToValueAtTime(0.19, now + offset + 0.015);
           gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.17);
-          oscillator.connect(gain).connect(audioContext.destination);
+          oscillator.connect(gain).connect(context.destination);
           oscillator.start(now + offset);
           oscillator.stop(now + offset + 0.18);
         });
-      }).catch(() => {});
+      } catch { /* The visible alert still appears if audio is unavailable. */ }
+    };
+    if (context.state === "running") schedule();
+    else {
+      try { void context.resume().then(schedule).catch(() => {}); } catch { /* Interrupted. */ }
     }
+  }
+
+  function playMediaAlarm() {
+    if (!mediaAlarm) return false;
+    try {
+      // iOS normally treats Web Audio as ambient audio, which the silent switch can mute.
+      try {
+        if (navigator.audioSession) navigator.audioSession.type = "playback";
+      } catch { /* Keep playing if this optional API is unavailable. */ }
+      mediaAlarm.pause();
+      mediaAlarm.src = "./alarm.wav";
+      mediaAlarm.onended = restoreAudioSession;
+      window.clearTimeout(audioSessionRestoreTimer);
+      audioSessionRestoreTimer = window.setTimeout(restoreAudioSession, 1500);
+      void Promise.resolve(mediaAlarm.play()).catch(() => {
+        restoreAudioSession();
+        playWebAudioAlarm();
+      });
+      return true;
+    } catch {
+      restoreAudioSession();
+      return false;
+    }
+  }
+
+  function soundAlarm() {
+    if (!useMediaAlarm || !playMediaAlarm()) playWebAudioAlarm();
     if (navigator.vibrate) navigator.vibrate([140, 100, 140]);
     document.title = "時間です！ — おうちタイマー";
   }
